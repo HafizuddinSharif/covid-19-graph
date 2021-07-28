@@ -42,6 +42,11 @@ function Home() {
 
         e.preventDefault()
 
+        setLoading(true)
+        setErrorNA(false)
+        setShow(false)
+        setShowGuide(false)
+
         const response = await fetch(`https://api.covid19api.com/country/${country}?from=${secondDate}T00:00:00Z&to=${firstDate}T00:00:00Z`)
 
         if (response.ok) {
@@ -49,14 +54,31 @@ function Home() {
 
             setDates(jsonResponse.map( elem => elem.Date.slice(0, 10) ))
             // casesPerDay is a helper function
-            setConfirmed(casesPerDay(jsonResponse.map( elem => elem.Confirmed )))
 
-            setShow(true)
+            const data = casesPerDay(jsonResponse.map( elem => elem.Confirmed ))
+            
+            setLoading(false)
+
+            if (data.length > 0) {
+
+              setConfirmed(data)
+              setShow(true)
+
+            } else {
+
+              setErrorNA(true)
+
+            }
+
+            
         }
 
     }
 
     const [show, setShow] = useState(false)
+    const [errorNA, setErrorNA] = useState(false)
+    const [showGuide, setShowGuide] = useState(true)
+    const [loading, setLoading] = useState(false)
 
     const dataChart = {
         labels: dates,
@@ -90,7 +112,16 @@ function Home() {
             },
           ],
         },
+        animation: {
+          duration: 0,
+        }
       };
+
+      const barHeight = (window.screen.width > 700) ? "auto" : "100"
+      const barWidth = (window.screen.width > 700) ? "auto" : "100"
+
+      console.log(window.screen.width > 700)
+      console.log(window.screen.width)
       
 
     return (
@@ -104,7 +135,7 @@ function Home() {
                         <Form.Label>Country</Form.Label>
                         <select value={country} onChange={handleCountryChange} className="w-100 p-2 rounded" style={{ border: '1px solid #ced4da' }} required>
                             <option value="" disabled >Select country</option>
-                            <option value="malaysia" selected >Malaysia</option>
+                            <option value="malaysia" defaultValue >Malaysia</option>
                             <option value="south-africa">South Africa</option>
                             <option value="singapore">Singapore</option>
                         </select>
@@ -125,9 +156,12 @@ function Home() {
                 </Form>
             </div>
 
-            <div className="mx-5 my-5 text-center"> 
-                { !show && <h6>Your graph will appear here. <br />Please pick a country 🌍 and a span of time ⌛</h6> }
-                { show && <Bar data={dataChart} options={options} /> }
+            <div className="mx-5 my-4 text-center"> 
+                { loading && <h6>⚙️ Fetching data...</h6>}
+                { showGuide && <h6>Your graph will appear here. <br />Please pick a country 🌍 and a span of time ⌛</h6> }
+                { errorNA && <h6 className="alert alert-danger mb-0">It seems that data is not available. <br />You might want to pick a different country 🌍 or time ⌛</h6> }
+                { show && <Bar data={dataChart} options={options} height={barHeight} width={barWidth} /> }
+                { console.log(<Bar data={dataChart} options={options} height={barHeight} width={barWidth} />) }
             </div>
         </div>
     )
@@ -151,6 +185,8 @@ const casesPerDay = (cumulativeCases) => {
         const numOfCase = cumulativeCases[i] - cumulativeCases[i-1]
         casesPerDay.push(numOfCase)
     }
+
+    console.log(casesPerDay)
 
     return casesPerDay
 }
